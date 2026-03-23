@@ -19,6 +19,7 @@ export function CanvasArea() {
     let drag: any = null;
     let isDown = false;
     let spaceDown = false;
+    const activePointers = new Map<number, { x: number, y: number }>();
 
     const resizeCanvas = () => {
       const rect = canvas.parentElement!.getBoundingClientRect();
@@ -257,8 +258,30 @@ export function CanvasArea() {
     };
 
     const onPointerDown = (e: PointerEvent) => {
-      canvas.setPointerCapture(e.pointerId);
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch (err) {}
       const { sx, sy } = getCanvasPoint(e);
+      activePointers.set(e.pointerId, { x: sx, y: sy });
+
+      if (activePointers.size === 2) {
+        // Switch to pinch mode
+        if (drag && drag.kind === 'new' && drag.id) {
+          // Remove the newly created line if we cancel it
+          store.update({ lines: store.state.lines.filter(l => l.id !== drag.id) });
+        }
+        isDown = true;
+        
+        const pts = Array.from(activePointers.values());
+        const p1 = pts[0];
+        const p2 = pts[1];
+        const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        
+        drag = { kind: 'pinch', lastDist: dist, lastCenter: center };
+        return;
+      }
+
       const { mode } = store.state;
 
       const wantPan = (mode === 'pan') || spaceDown || (e.button === 1) || (e.button === 2);
@@ -301,9 +324,10 @@ export function CanvasArea() {
       if (mode === 'scale' || mode === 'measure' || mode === 'radius') {
         const w = screenToWorld(sx, sy);
         isDown = true;
-        drag = { kind: 'new', type: mode };
         
         const id = (mode === 'scale') ? 'SCALE' : uid();
+        drag = { kind: 'new', type: mode, id };
+        
         let newLines = [...store.state.lines];
         let newScaleLineId = store.state.scaleLineId;
         
@@ -326,9 +350,51 @@ export function CanvasArea() {
 
     const onPointerMove = (e: PointerEvent) => {
       const { sx, sy } = getCanvasPoint(e);
+      
+      if (activePointers.has(e.pointerId)) {
+        activePointers.set(e.pointerId, { x: sx, y: sy });
+      }
+
+      if (activePointers.size === 2 && drag?.kind === 'pinch') {
+        const pts = Array.from(activePointers.values());
+        const p1 = pts[0];
+        const p2 = pts[1];
+        
+        const newDist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        const newCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+
+        if (drag.lastDist && drag.lastCenter) {
+          // Pan
+          const dx = newCenter.x - drag.lastCenter.x;
+          const dy = newCenter.y - drag.lastCenter.y;
+          store.state.viewport.ox += dx;
+          store.state.viewport.oy += dy;
+
+          // Zoom
+          const zoomFactor = newDist / drag.lastDist;
+          if (zoomFactor !== 1 && zoomFactor > 0) {
+            const { ox, oy, scale } = store.state.viewport;
+            const wx = (newCenter.x - ox) / scale;
+            const wy = (newCenter.y - oy) / scale;
+            
+            const newScale = Math.max(0.05, Math.min(80, scale * zoomFactor));
+            store.state.viewport.scale = newScale;
+            store.state.viewport.ox = newCenter.x - wx * newScale;
+            store.state.viewport.oy = newCenter.y - wy * newScale;
+          }
+        }
+        
+        drag.lastDist = newDist;
+        drag.lastCenter = newCenter;
+        
+        store.update({ viewport: { ...store.state.viewport } });
+        draw();
+        return;
+      }
+
       const { mode, lines, selectedId } = store.state;
 
-      if (!isDown || !drag) {
+      if (!isDown || !drag || drag.kind === 'pinch') {
         const hit = pick(sx, sy);
         canvas.style.cursor = hit ? (hit.kind === 'p1' || hit.kind === 'p2' || hit.kind === 'pm' ? 'grab' : 'move') : (mode === 'pan' || spaceDown ? 'grab' : 'crosshair');
         return;
@@ -379,12 +445,26 @@ export function CanvasArea() {
       draw();
     };
 
-    const onPointerUp = () => {
-      if (!isDown) return;
-      isDown = false;
-      drag = null;
-      store.update({ lines: [...store.state.lines], viewport: { ...store.state.viewport } });
-      draw();
+    const onPointerUp = (e: PointerEvent) => {
+      activePointers.delete(e.pointerId);
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+
+      if (activePointers.size === 1 && drag?.kind === 'pinch') {
+        // Revert to pan or just end drag
+        isDown = false;
+        drag = null;
+        return;
+      }
+
+      if (activePointers.size === 0) {
+        if (!isDown) return;
+        isDown = false;
+        drag = null;
+        store.update({ lines: [...store.state.lines], viewport: { ...store.state.viewport } });
+        draw();
+      }
     };
 
     const onWheel = (e: WheelEvent) => {

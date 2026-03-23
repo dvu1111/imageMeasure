@@ -16,19 +16,19 @@
 
 @layer components {
   .btn {
-    @apply bg-[#16244a] border border-[#223058] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#1b2c59] hover:border-[#2a3b72] active:translate-y-[1px] flex items-center justify-center;
+    @apply bg-[#16244a] border border-[#223058] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#1b2c59] hover:border-[#2a3b72] active:translate-y-[1px] flex items-center justify-center min-h-[44px] min-w-[44px];
   }
   .btn-icon {
-    @apply bg-[#16244a] border border-[#223058] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#1b2c59] hover:border-[#2a3b72] active:translate-y-[1px] flex items-center justify-center gap-1.5 flex-1;
+    @apply bg-[#16244a] border border-[#223058] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#1b2c59] hover:border-[#2a3b72] active:translate-y-[1px] flex items-center justify-center gap-1.5 flex-1 min-h-[44px] min-w-[44px];
   }
   .btn-icon.active {
     @apply bg-[#4f8cff] border-[#4f8cff] text-[#06102a] font-medium;
   }
   .btn-danger {
-    @apply bg-[#ff4f6d]/10 border border-[#ff4f6d]/30 text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#ff4f6d]/20 hover:border-[#ff4f6d]/50 active:translate-y-[1px] flex items-center justify-center;
+    @apply bg-[#ff4f6d]/10 border border-[#ff4f6d]/30 text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#ff4f6d]/20 hover:border-[#ff4f6d]/50 active:translate-y-[1px] flex items-center justify-center min-h-[44px] min-w-[44px];
   }
   .btn-danger-solid {
-    @apply bg-[#2a1430] border border-[#4a1c2b] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#3a1635] hover:border-[#6a2135] active:translate-y-[1px] flex items-center justify-center;
+    @apply bg-[#2a1430] border border-[#4a1c2b] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#3a1635] hover:border-[#6a2135] active:translate-y-[1px] flex items-center justify-center min-h-[44px] min-w-[44px];
   }
 }
 

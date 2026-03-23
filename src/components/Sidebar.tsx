@@ -1,12 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { store, useMeasureStore } from '../store';
 import { getLineValPx, realLengthText, getCircle } from '../utils/math';
 import { MeasurementList } from './MeasurementList';
-import { Ruler, Circle, Move, Trash2, Copy, Download, Upload, Maximize, ZoomIn, FileImage, Crop, RotateCcw } from 'lucide-react';
+import { Ruler, Circle, Move, Trash2, Copy, Download, Upload, Maximize, ZoomIn, FileImage, Crop, RotateCcw, Menu, X, Minimize } from 'lucide-react';
 
 export function Sidebar() {
   const state = useMeasureStore();
   const [knownMm, setKnownMm] = useState<string>('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => console.error(err));
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -115,27 +131,51 @@ export function Sidebar() {
   const selectedLine = state.selectedId ? state.lines.find(l => l.id === state.selectedId) : null;
 
   return (
-    <aside className="w-[340px] flex-shrink-0 bg-gradient-to-b from-[#111a33] to-[#0f1730] border-r border-[#223058] overflow-y-auto flex flex-col h-full text-[#e7eefc]">
-      <div className="p-3 border-b border-[#223058] sticky top-0 bg-[#111a33]/90 backdrop-blur-md z-10 flex flex-col gap-2.5">
-        <h3 className="text-xs tracking-widest uppercase text-[#9fb2da]">Tools</h3>
-        <div className="flex flex-wrap gap-2">
-          <button className={`btn-icon ${state.mode === 'scale' ? 'active' : ''}`} onClick={() => store.setMode('scale')} title="Scale">
-            <Ruler size={16} /> Scale
-          </button>
-          <button className={`btn-icon ${state.mode === 'measure' ? 'active' : ''}`} onClick={() => store.setMode('measure')} title="Measure">
-            <Move size={16} className="rotate-45" /> Measure
-          </button>
-          <button className={`btn-icon ${state.mode === 'radius' ? 'active' : ''}`} onClick={() => store.setMode('radius')} title="Radius">
-            <Circle size={16} /> Radius
-          </button>
-          <button className={`btn-icon ${state.mode === 'perspective' ? 'active' : ''}`} onClick={() => store.setMode('perspective')} title="Perspective">
-            <Crop size={16} /> Perspective
-          </button>
-          <button className={`btn-icon ${state.mode === 'pan' ? 'active' : ''}`} onClick={() => store.setMode('pan')} title="Pan">
-            <Move size={16} /> Pan
-          </button>
+    <>
+      {/* Mobile FAB */}
+      <button 
+        className="md:hidden fixed bottom-4 right-4 z-40 bg-[#4f8cff] text-[#06102a] p-3 rounded-full shadow-lg flex items-center justify-center min-h-[56px] min-w-[56px]"
+        onClick={() => setIsMobileMenuOpen(true)}
+      >
+        <Menu size={24} />
+      </button>
+
+      {/* Mobile Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      <aside className={`w-4/5 max-w-[340px] md:w-[340px] flex-shrink-0 bg-gradient-to-b from-[#111a33] to-[#0f1730] border-r border-[#223058] overflow-y-auto flex flex-col h-full text-[#e7eefc] fixed md:relative z-50 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="p-3 border-b border-[#223058] sticky top-0 bg-[#111a33]/90 backdrop-blur-md z-10 flex flex-col gap-2.5">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xs tracking-widest uppercase text-[#9fb2da]">Tools</h3>
+            <div className="flex gap-2">
+              <button className="md:hidden text-[#9fb2da] hover:text-white p-1" onClick={() => setIsMobileMenuOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2">
+            <button className={`btn-icon w-full md:w-auto ${state.mode === 'scale' ? 'active' : ''}`} onClick={() => store.setMode('scale')} title="Scale">
+              <Ruler size={20} /> <span className="md:hidden ml-2">Scale</span>
+            </button>
+            <button className={`btn-icon w-full md:w-auto ${state.mode === 'measure' ? 'active' : ''}`} onClick={() => store.setMode('measure')} title="Measure">
+              <Move size={20} className="rotate-45" /> <span className="md:hidden ml-2">Measure</span>
+            </button>
+            <button className={`btn-icon w-full md:w-auto ${state.mode === 'radius' ? 'active' : ''}`} onClick={() => store.setMode('radius')} title="Radius">
+              <Circle size={20} /> <span className="md:hidden ml-2">Radius</span>
+            </button>
+            <button className={`btn-icon w-full md:w-auto ${state.mode === 'perspective' ? 'active' : ''}`} onClick={() => store.setMode('perspective')} title="Perspective">
+              <Crop size={20} /> <span className="md:hidden ml-2">Perspective</span>
+            </button>
+            <button className={`btn-icon w-full md:w-auto ${state.mode === 'pan' ? 'active' : ''}`} onClick={() => store.setMode('pan')} title="Pan">
+              <Move size={20} /> <span className="md:hidden ml-2">Pan</span>
+            </button>
+          </div>
         </div>
-      </div>
 
       {state.mode === 'perspective' && (
         <div className="p-3 border-b border-[#223058]">
@@ -158,19 +198,24 @@ export function Sidebar() {
       <div className="p-3 border-b border-[#223058]">
         <h3 className="text-xs tracking-widest uppercase text-[#9fb2da] mb-2.5">Image</h3>
         <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 px-3 py-2 bg-[#0f1730] border border-[#223058] rounded-lg cursor-pointer hover:bg-[#16244a] transition-colors">
-            <FileImage size={16} className="text-[#9fb2da]" />
-            <span className="text-sm text-[#9fb2da] truncate">{state.imgName || 'Choose image...'}</span>
-            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-          </label>
+          <div className="flex justify-between items-center">
+            <label className="flex-1 flex items-center gap-2 px-3 py-2 bg-[#0f1730] border border-[#223058] rounded-lg cursor-pointer hover:bg-[#16244a] transition-colors min-h-[44px]">
+              <FileImage size={20} className="text-[#9fb2da]" />
+              <span className="text-sm text-[#9fb2da] truncate">{state.imgName || 'Choose image...'}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            </label>
+            <button className="btn-icon ml-2 flex-none" onClick={toggleFullscreen} title="Toggle Fullscreen">
+              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+            </button>
+          </div>
           <div className="flex gap-2">
-            <button className="btn flex-1" onClick={() => store.fitToScreen()}><Maximize size={14} className="inline mr-1"/> Fit</button>
-            <button className="btn flex-1" onClick={() => store.oneToOne()}><ZoomIn size={14} className="inline mr-1"/> 1:1</button>
-            <button className="btn-danger flex-1" onClick={() => store.clearAll()}><Trash2 size={14} className="inline mr-1"/> Clear</button>
+            <button className="btn flex-1" onClick={() => store.fitToScreen()}><Maximize size={18} className="inline mr-1"/> Fit</button>
+            <button className="btn flex-1" onClick={() => store.oneToOne()}><ZoomIn size={18} className="inline mr-1"/> 1:1</button>
+            <button className="btn-danger flex-1" onClick={() => store.clearAll()}><Trash2 size={18} className="inline mr-1"/> Clear</button>
           </div>
           {state.originalImg && (
             <div className="flex gap-2">
-              <button className="btn flex-1 justify-center" onClick={() => store.resetImage()}><RotateCcw size={14} className="inline mr-1"/> Reset to Original</button>
+              <button className="btn flex-1 justify-center" onClick={() => store.resetImage()}><RotateCcw size={18} className="inline mr-1"/> Reset to Original</button>
             </div>
           )}
           <div className="text-xs text-[#9fb2da] leading-relaxed mt-1">
@@ -210,8 +255,8 @@ export function Sidebar() {
         <h3 className="text-xs tracking-widest uppercase text-[#9fb2da] mb-2.5">Selection</h3>
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <button className="btn-danger flex-1" onClick={() => store.deleteSelected()}><Trash2 size={14} className="inline mr-1"/> Delete</button>
-            <button className="btn flex-1" onClick={() => store.duplicateSelected()}><Copy size={14} className="inline mr-1"/> Duplicate</button>
+            <button className="btn-danger flex-1" onClick={() => store.deleteSelected()}><Trash2 size={18} className="inline mr-1"/> Delete</button>
+            <button className="btn flex-1" onClick={() => store.duplicateSelected()}><Copy size={18} className="inline mr-1"/> Duplicate</button>
           </div>
           <div className="text-xs text-[#9fb2da] mt-1">
             {selectedLine ? (
@@ -229,14 +274,15 @@ export function Sidebar() {
       <div className="p-3 border-t border-[#223058]">
         <h3 className="text-xs tracking-widest uppercase text-[#9fb2da] mb-2.5">Export / Import</h3>
         <div className="flex flex-col gap-2">
-          <button className="btn w-full justify-center" onClick={exportAnnotatedPng}><Download size={14} className="inline mr-2"/> Export PNG</button>
-          <button className="btn w-full justify-center" onClick={exportSessionJson}><Download size={14} className="inline mr-2"/> Export JSON</button>
+          <button className="btn w-full justify-center" onClick={exportAnnotatedPng}><Download size={18} className="inline mr-2"/> Export PNG</button>
+          <button className="btn w-full justify-center" onClick={exportSessionJson}><Download size={18} className="inline mr-2"/> Export JSON</button>
           <label className="btn w-full justify-center cursor-pointer flex items-center">
-            <Upload size={14} className="inline mr-2"/> Import JSON
+            <Upload size={18} className="inline mr-2"/> Import JSON
             <input type="file" accept="application/json" className="hidden" onChange={handleImportJson} />
           </label>
         </div>
       </div>
     </aside>
+    </>
   );
 }

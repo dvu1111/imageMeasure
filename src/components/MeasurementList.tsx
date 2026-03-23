@@ -12,7 +12,7 @@ export function MeasurementList() {
       {ordered.map(l => (
         <li 
           key={l.id}
-          className={`grid grid-cols-[1fr_auto] gap-1.5 p-2.5 border rounded-xl cursor-pointer transition-colors ${
+          className={`grid grid-cols-[1fr_auto] gap-2 p-3.5 border rounded-xl cursor-pointer transition-colors min-h-[60px] ${
             l.id === selectedId 
               ? 'border-[#4f8cff]/70 bg-[#4f8cff]/10 outline outline-2 outline-[#4f8cff]/50' 
               : 'border-[#223058] bg-[#0f1730]/60 hover:bg-[#16244a]/60'
