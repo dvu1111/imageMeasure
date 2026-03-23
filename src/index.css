@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b1020;
+  --color-panel: #111a33;
+  --color-panel2: #0f1730;
+  --color-border: #223058;
+  --color-text: #e7eefc;
+  --color-muted: #9fb2da;
+  --color-accent: #4f8cff;
+  --color-danger: #ff4f6d;
+  --color-ok: #33d69f;
+  --color-warn: #ffcc66;
+  --color-rad: #c482ff;
+}
+
+@layer components {
+  .btn {
+    @apply bg-[#16244a] border border-[#223058] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#1b2c59] hover:border-[#2a3b72] active:translate-y-[1px] flex items-center justify-center;
+  }
+  .btn-icon {
+    @apply bg-[#16244a] border border-[#223058] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#1b2c59] hover:border-[#2a3b72] active:translate-y-[1px] flex items-center justify-center gap-1.5 flex-1;
+  }
+  .btn-icon.active {
+    @apply bg-[#4f8cff] border-[#4f8cff] text-[#06102a] font-medium;
+  }
+  .btn-danger {
+    @apply bg-[#ff4f6d]/10 border border-[#ff4f6d]/30 text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#ff4f6d]/20 hover:border-[#ff4f6d]/50 active:translate-y-[1px] flex items-center justify-center;
+  }
+  .btn-danger-solid {
+    @apply bg-[#2a1430] border border-[#4a1c2b] text-[#e7eefc] px-2.5 py-2 rounded-lg cursor-pointer text-[13px] select-none transition-all hover:bg-[#3a1635] hover:border-[#6a2135] active:translate-y-[1px] flex items-center justify-center;
+  }
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background-color: #0b1020;
+  color: #e7eefc;
+}
