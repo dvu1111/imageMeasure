@@ -90,31 +90,17 @@ export function CanvasArea() {
             ctx.beginPath();
             ctx.arc(c.x, c.y, c.r, sa, ea, !isCw);
             ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
-            ctx.stroke();
           } else {
             ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
-            ctx.stroke();
           }
         } else {
           ctx.beginPath();
           ctx.moveTo(l.x1, l.y1);
           ctx.lineTo(l.x2, l.y2);
           ctx.stroke();
+        }
 
+        if (l.id !== selectedId) {
           ctx.beginPath();
           ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
           ctx.stroke();
@@ -506,31 +492,17 @@ export function CanvasArea() {
             ctx.beginPath();
             ctx.arc(c.x, c.y, c.r, sa, ea, !isCw);
             ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
-            ctx.stroke();
           } else {
             ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
-            ctx.stroke();
           }
         } else {
           ctx.beginPath();
           ctx.moveTo(l.x1, l.y1);
           ctx.lineTo(l.x2, l.y2);
           ctx.stroke();
+        }
 
+        if (l.id !== selectedId) {
           ctx.beginPath();
           ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
           ctx.stroke();
