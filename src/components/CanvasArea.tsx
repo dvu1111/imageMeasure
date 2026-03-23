@@ -303,7 +303,10 @@ export function CanvasArea() {
       if (mode === 'perspective') {
         if (store.state.perspectivePoints.length < 4) {
           const w = screenToWorld(sx, sy);
+          const newIndex = store.state.perspectivePoints.length;
           store.update({ perspectivePoints: [...store.state.perspectivePoints, { x: w.x, y: w.y }] });
+          isDown = true;
+          drag = { kind: 'perspective', index: newIndex, lastWx: w.x, lastWy: w.y };
           draw();
         }
         return;
