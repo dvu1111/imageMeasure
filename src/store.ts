@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { Line, Viewport, Mode } from './types';
-import { uid, getLineValPx } from './utils/math';
+import { Line, Viewport, Mode, Point } from './types';
+import { uid, getLineValPx, solveHomography, applyHomography } from './utils/math';
 
 class MeasureStore {
   private listeners = new Set<() => void>();
@@ -16,6 +16,7 @@ class MeasureStore {
 
   state = {
     img: null as HTMLImageElement | null,
+    originalImg: null as HTMLImageElement | null,
     imgName: '',
     viewport: { scale: 1, ox: 0, oy: 0 } as Viewport,
     mode: 'scale' as Mode,
@@ -23,6 +24,7 @@ class MeasureStore {
     scaleLineId: null as string | null,
     mmPerPx: null as number | null,
     selectedId: null as string | null,
+    perspectivePoints: [] as Point[],
   };
 
   getSnapshot = () => this.state;
@@ -42,11 +44,13 @@ class MeasureStore {
     im.onload = () => {
       this.update({
         img: im,
+        originalImg: im,
         imgName: file.name || 'image',
         lines: [],
         scaleLineId: null,
         mmPerPx: null,
         selectedId: null,
+        perspectivePoints: [],
       });
       this.fitToScreen();
       URL.revokeObjectURL(url);
@@ -60,11 +64,13 @@ class MeasureStore {
     im.onload = () => {
       this.update({
         img: im,
+        originalImg: im,
         imgName: name,
         lines: [],
         scaleLineId: null,
         mmPerPx: null,
         selectedId: null,
+        perspectivePoints: [],
       });
       this.fitToScreen();
       URL.revokeObjectURL(url);
@@ -153,6 +159,86 @@ class MeasureStore {
       scaleLineId: null,
       mmPerPx: null,
     });
+  }
+
+  resetImage() {
+    const { originalImg } = this.state;
+    if (!originalImg) return;
+    this.update({
+      img: originalImg,
+      lines: [],
+      scaleLineId: null,
+      mmPerPx: null,
+      selectedId: null,
+      perspectivePoints: [],
+    });
+    this.fitToScreen();
+  }
+
+  applyPerspectiveCorrection() {
+    const { img, perspectivePoints } = this.state;
+    if (!img || perspectivePoints.length !== 4) return;
+
+    const [p0, p1, p2, p3] = perspectivePoints;
+    const w1 = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+    const w2 = Math.hypot(p2.x - p3.x, p2.y - p3.y);
+    const h1 = Math.hypot(p3.x - p0.x, p3.y - p0.y);
+    const h2 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    const w = Math.round(Math.max(w1, w2));
+    const h = Math.round(Math.max(h1, h2));
+
+    const dstPoints = [
+      { x: 0, y: 0 },
+      { x: w, y: 0 },
+      { x: w, y: h },
+      { x: 0, y: h }
+    ];
+
+    const H = solveHomography(dstPoints, perspectivePoints);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    
+    const srcCanvas = document.createElement('canvas');
+    srcCanvas.width = img.width;
+    srcCanvas.height = img.height;
+    const srcCtx = srcCanvas.getContext('2d')!;
+    srcCtx.drawImage(img, 0, 0);
+    const srcData = srcCtx.getImageData(0, 0, img.width, img.height);
+    const dstData = ctx.createImageData(w, h);
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const p = applyHomography(H, x, y);
+        const sx = Math.round(p.x);
+        const sy = Math.round(p.y);
+        if (sx >= 0 && sx < img.width && sy >= 0 && sy < img.height) {
+          const srcIdx = (sy * img.width + sx) * 4;
+          const dstIdx = (y * w + x) * 4;
+          dstData.data[dstIdx] = srcData.data[srcIdx];
+          dstData.data[dstIdx + 1] = srcData.data[srcIdx + 1];
+          dstData.data[dstIdx + 2] = srcData.data[srcIdx + 2];
+          dstData.data[dstIdx + 3] = srcData.data[srcIdx + 3];
+        }
+      }
+    }
+    ctx.putImageData(dstData, 0, 0);
+
+    const newImg = new Image();
+    newImg.onload = () => {
+      this.update({
+        img: newImg,
+        perspectivePoints: [],
+        lines: [],
+        scaleLineId: null,
+        mmPerPx: null,
+        selectedId: null,
+      });
+      this.fitToScreen();
+    };
+    newImg.src = canvas.toDataURL();
   }
 }
 

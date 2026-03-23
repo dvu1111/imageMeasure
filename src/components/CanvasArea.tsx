@@ -48,7 +48,7 @@ export function CanvasArea() {
     };
 
     const draw = () => {
-      const { img, viewport, lines, selectedId, mode, mmPerPx } = store.state;
+      const { img, viewport, lines, selectedId, mode, mmPerPx, perspectivePoints } = store.state;
       const rect = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
 
@@ -90,17 +90,59 @@ export function CanvasArea() {
             ctx.beginPath();
             ctx.arc(c.x, c.y, c.r, sa, ea, !isCw);
             ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
+            ctx.stroke();
           } else {
             ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
+            ctx.stroke();
           }
         } else {
           ctx.beginPath();
           ctx.moveTo(l.x1, l.y1);
           ctx.lineTo(l.x2, l.y2);
           ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
+          ctx.stroke();
         }
         ctx.restore();
       }
+
+      if (mode === 'perspective' && perspectivePoints && perspectivePoints.length > 0) {
+        ctx.save();
+        ctx.strokeStyle = '#ff4f81';
+        ctx.lineWidth = 2 / viewport.scale;
+        ctx.beginPath();
+        perspectivePoints.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        if (perspectivePoints.length === 4) ctx.closePath();
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255, 79, 129, 0.2)';
+        if (perspectivePoints.length === 4) ctx.fill();
+        ctx.restore();
+      }
+
       ctx.restore();
 
       ctx.save();
@@ -133,14 +175,12 @@ export function CanvasArea() {
 
         if (l.id === selectedId) {
           ctx.save();
-          ctx.fillStyle = '#e7eefc';
-          ctx.strokeStyle = '#06102a';
+          ctx.strokeStyle = '#4f8cff';
           ctx.lineWidth = 2;
 
           const drawHandle = (p: { x: number, y: number }) => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, HANDLE_R, 0, Math.PI * 2);
-            ctx.fill();
             ctx.stroke();
           };
           drawHandle(a);
@@ -153,6 +193,19 @@ export function CanvasArea() {
         }
       }
 
+      if (mode === 'perspective' && perspectivePoints && perspectivePoints.length > 0) {
+        ctx.save();
+        ctx.strokeStyle = '#ff4f81';
+        ctx.lineWidth = 2;
+        perspectivePoints.forEach((p) => {
+          const sp = worldToScreen(p.x, p.y);
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, HANDLE_R, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
       ctx.fillStyle = 'rgba(255,255,255,0.70)';
       ctx.font = '12px ui-monospace, SFMono-Regular, Consolas, monospace';
       ctx.fillText(`mode=${mode}  zoom=${viewport.scale.toFixed(3)}  lines=${lines.length}`, 12, rect.height - 14);
@@ -160,7 +213,15 @@ export function CanvasArea() {
     };
 
     const pick = (sx: number, sy: number) => {
-      const { lines, selectedId, viewport } = store.state;
+      const { lines, selectedId, viewport, mode, perspectivePoints } = store.state;
+      
+      if (mode === 'perspective') {
+        for (let i = 0; i < perspectivePoints.length; i++) {
+          const p = worldToScreen(perspectivePoints[i].x, perspectivePoints[i].y);
+          if (Math.hypot(sx - p.x, sy - p.y) <= HANDLE_R + 2) return { kind: 'perspective', index: i, id: '' };
+        }
+      }
+
       for (let i = lines.length - 1; i >= 0; i--) {
         const l = lines[i];
         const a = worldToScreen(l.x1, l.y1);
@@ -224,11 +285,27 @@ export function CanvasArea() {
       }
 
       if (hit) {
+        if (hit.kind === 'perspective') {
+          isDown = true;
+          const w = screenToWorld(sx, sy);
+          drag = { kind: 'perspective', index: hit.index, lastWx: w.x, lastWy: w.y };
+          draw();
+          return;
+        }
         store.update({ selectedId: hit.id });
         isDown = true;
         const w = screenToWorld(sx, sy);
         drag = { kind: hit.kind, id: hit.id, lastWx: w.x, lastWy: w.y };
         draw();
+        return;
+      }
+
+      if (mode === 'perspective') {
+        if (store.state.perspectivePoints.length < 4) {
+          const w = screenToWorld(sx, sy);
+          store.update({ perspectivePoints: [...store.state.perspectivePoints, { x: w.x, y: w.y }] });
+          draw();
+        }
         return;
       }
 
@@ -277,6 +354,15 @@ export function CanvasArea() {
       }
 
       const w = screenToWorld(sx, sy);
+
+      if (drag.kind === 'perspective') {
+        const newPoints = [...store.state.perspectivePoints];
+        newPoints[drag.index] = { x: w.x, y: w.y };
+        store.update({ perspectivePoints: newPoints });
+        draw();
+        return;
+      }
+
       const l = lines.find(x => x.id === selectedId);
       if (!l) return;
 
@@ -375,7 +461,7 @@ export function CanvasArea() {
     if (!ctx) return;
     
     const draw = () => {
-      const { img, viewport, lines, selectedId, mode, mmPerPx } = store.state;
+      const { img, viewport, lines, selectedId, mode, mmPerPx, perspectivePoints } = store.state;
       const rect = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
 
@@ -417,17 +503,59 @@ export function CanvasArea() {
             ctx.beginPath();
             ctx.arc(c.x, c.y, c.r, sa, ea, !isCw);
             ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
+            ctx.stroke();
           } else {
             ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
+            ctx.stroke();
           }
         } else {
           ctx.beginPath();
           ctx.moveTo(l.x1, l.y1);
           ctx.lineTo(l.x2, l.y2);
           ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(l.x1, l.y1, 4 / viewport.scale, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(l.x2, l.y2, 4 / viewport.scale, 0, Math.PI * 2);
+          ctx.stroke();
         }
         ctx.restore();
       }
+
+      if (mode === 'perspective' && perspectivePoints.length > 0) {
+        ctx.save();
+        ctx.strokeStyle = '#ff4f81';
+        ctx.lineWidth = 2 / viewport.scale;
+        ctx.beginPath();
+        perspectivePoints.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        if (perspectivePoints.length === 4) ctx.closePath();
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255, 79, 129, 0.2)';
+        if (perspectivePoints.length === 4) ctx.fill();
+        ctx.restore();
+      }
+
       ctx.restore();
 
       ctx.save();
@@ -467,14 +595,12 @@ export function CanvasArea() {
 
         if (l.id === selectedId) {
           ctx.save();
-          ctx.fillStyle = '#e7eefc';
-          ctx.strokeStyle = '#06102a';
+          ctx.strokeStyle = '#4f8cff';
           ctx.lineWidth = 2;
 
           const drawHandle = (p: { x: number, y: number }) => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, HANDLE_R, 0, Math.PI * 2);
-            ctx.fill();
             ctx.stroke();
           };
           drawHandle(a);
@@ -485,6 +611,19 @@ export function CanvasArea() {
           }
           ctx.restore();
         }
+      }
+
+      if (mode === 'perspective' && perspectivePoints.length > 0) {
+        ctx.save();
+        ctx.strokeStyle = '#ff4f81';
+        ctx.lineWidth = 2;
+        perspectivePoints.forEach((p) => {
+          const sp = worldToScreen(p.x, p.y);
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, HANDLE_R, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        ctx.restore();
       }
 
       ctx.fillStyle = 'rgba(255,255,255,0.70)';

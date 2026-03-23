@@ -56,3 +56,44 @@ export const realLengthText = (l: Line, mmPerPx: number | null) => {
   }
   return `${prefix}${px.toFixed(1)} px`;
 };
+
+export const solveHomography = (src: {x: number, y: number}[], dst: {x: number, y: number}[]) => {
+  const A: number[][] = [];
+  const B: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    const { x, y } = src[i];
+    const { x: u, y: v } = dst[i];
+    A.push([x, y, 1, 0, 0, 0, -x * u, -y * u]);
+    B.push(u);
+    A.push([0, 0, 0, x, y, 1, -x * v, -y * v]);
+    B.push(v);
+  }
+  for (let i = 0; i < 8; i++) {
+    let maxRow = i;
+    for (let j = i + 1; j < 8; j++) {
+      if (Math.abs(A[j][i]) > Math.abs(A[maxRow][i])) maxRow = j;
+    }
+    const tempA = A[i]; A[i] = A[maxRow]; A[maxRow] = tempA;
+    const tempB = B[i]; B[i] = B[maxRow]; B[maxRow] = tempB;
+    for (let j = i + 1; j < 8; j++) {
+      const f = A[j][i] / A[i][i];
+      for (let k = i; k < 8; k++) A[j][k] -= A[i][k] * f;
+      B[j] -= B[i] * f;
+    }
+  }
+  const H = new Array(8);
+  for (let i = 7; i >= 0; i--) {
+    let sum = 0;
+    for (let j = i + 1; j < 8; j++) sum += A[i][j] * H[j];
+    H[i] = (B[i] - sum) / A[i][i];
+  }
+  return [...H, 1];
+};
+
+export const applyHomography = (H: number[], x: number, y: number) => {
+  const w = H[6] * x + H[7] * y + H[8];
+  return {
+    x: (H[0] * x + H[1] * y + H[2]) / w,
+    y: (H[3] * x + H[4] * y + H[5]) / w
+  };
+};

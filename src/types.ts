@@ -1,4 +1,9 @@
-export type Mode = 'scale' | 'measure' | 'radius' | 'pan';
+export type Mode = 'scale' | 'measure' | 'radius' | 'pan' | 'perspective';
+
+export interface Point {
+  x: number;
+  y: number;
+}
 
 export interface Line {
   id: string;

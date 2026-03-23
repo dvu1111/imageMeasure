@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { store, useMeasureStore } from '../store';
 import { getLineValPx, realLengthText, getCircle } from '../utils/math';
 import { MeasurementList } from './MeasurementList';
-import { Ruler, Circle, Move, Trash2, Copy, Download, Upload, Maximize, ZoomIn, FileImage } from 'lucide-react';
+import { Ruler, Circle, Move, Trash2, Copy, Download, Upload, Maximize, ZoomIn, FileImage, Crop, RotateCcw } from 'lucide-react';
 
 export function Sidebar() {
   const state = useMeasureStore();
@@ -69,11 +69,17 @@ export function Sidebar() {
           const norm = (val: number) => (val + 2*Math.PI) % (2*Math.PI);
           const isCw = (norm(ma - sa) <= norm(ea - sa));
           o.beginPath(); o.arc(c.x, c.y, c.r, sa, ea, !isCw); o.stroke();
+          o.beginPath(); o.arc(l.x1, l.y1, 6, 0, Math.PI * 2); o.stroke();
+          o.beginPath(); o.arc(l.x2, l.y2, 6, 0, Math.PI * 2); o.stroke();
         } else {
           o.beginPath(); o.moveTo(l.x1, l.y1); o.lineTo(l.x2, l.y2); o.stroke();
+          o.beginPath(); o.arc(l.x1, l.y1, 6, 0, Math.PI * 2); o.stroke();
+          o.beginPath(); o.arc(l.x2, l.y2, 6, 0, Math.PI * 2); o.stroke();
         }
       } else {
         o.beginPath(); o.moveTo(l.x1, l.y1); o.lineTo(l.x2, l.y2); o.stroke();
+        o.beginPath(); o.arc(l.x1, l.y1, 6, 0, Math.PI * 2); o.stroke();
+        o.beginPath(); o.arc(l.x2, l.y2, 6, 0, Math.PI * 2); o.stroke();
       }
       o.restore();
 
@@ -112,7 +118,7 @@ export function Sidebar() {
     <aside className="w-[340px] flex-shrink-0 bg-gradient-to-b from-[#111a33] to-[#0f1730] border-r border-[#223058] overflow-y-auto flex flex-col h-full text-[#e7eefc]">
       <div className="p-3 border-b border-[#223058] sticky top-0 bg-[#111a33]/90 backdrop-blur-md z-10 flex flex-col gap-2.5">
         <h3 className="text-xs tracking-widest uppercase text-[#9fb2da]">Tools</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button className={`btn-icon ${state.mode === 'scale' ? 'active' : ''}`} onClick={() => store.setMode('scale')} title="Scale">
             <Ruler size={16} /> Scale
           </button>
@@ -122,11 +128,32 @@ export function Sidebar() {
           <button className={`btn-icon ${state.mode === 'radius' ? 'active' : ''}`} onClick={() => store.setMode('radius')} title="Radius">
             <Circle size={16} /> Radius
           </button>
+          <button className={`btn-icon ${state.mode === 'perspective' ? 'active' : ''}`} onClick={() => store.setMode('perspective')} title="Perspective">
+            <Crop size={16} /> Perspective
+          </button>
           <button className={`btn-icon ${state.mode === 'pan' ? 'active' : ''}`} onClick={() => store.setMode('pan')} title="Pan">
             <Move size={16} /> Pan
           </button>
         </div>
       </div>
+
+      {state.mode === 'perspective' && (
+        <div className="p-3 border-b border-[#223058]">
+          <h3 className="text-xs tracking-widest uppercase text-[#9fb2da] mb-2.5">Perspective Correction</h3>
+          <div className="flex flex-col gap-2">
+            <div className="text-xs text-[#9fb2da] leading-relaxed">
+              Click 4 points (Top-Left, Top-Right, Bottom-Right, Bottom-Left) to define the corners.
+            </div>
+            <button 
+              className="btn flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed" 
+              disabled={state.perspectivePoints.length !== 4}
+              onClick={() => store.applyPerspectiveCorrection()}
+            >
+              Apply Warp
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="p-3 border-b border-[#223058]">
         <h3 className="text-xs tracking-widest uppercase text-[#9fb2da] mb-2.5">Image</h3>
@@ -141,6 +168,11 @@ export function Sidebar() {
             <button className="btn flex-1" onClick={() => store.oneToOne()}><ZoomIn size={14} className="inline mr-1"/> 1:1</button>
             <button className="btn-danger flex-1" onClick={() => store.clearAll()}><Trash2 size={14} className="inline mr-1"/> Clear</button>
           </div>
+          {state.originalImg && (
+            <div className="flex gap-2">
+              <button className="btn flex-1 justify-center" onClick={() => store.resetImage()}><RotateCcw size={14} className="inline mr-1"/> Reset to Original</button>
+            </div>
+          )}
           <div className="text-xs text-[#9fb2da] leading-relaxed mt-1">
             Drag-drop an image onto the canvas. Paste (Ctrl+V) also works.
           </div>
